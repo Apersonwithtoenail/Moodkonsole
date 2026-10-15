@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import subprocess, sys, time, os, colorsys
+import subprocess, sys, time, os, colorsys, signal
 
 CAVA_CONF = "/tmp/moodterm-cava.conf"
 open(CAVA_CONF,"w").write("""[general]
@@ -17,11 +17,22 @@ bar_delimiter = 59
 frame_delimiter = 10
 """)
 
+def reset_bg():
+    try:
+        sys.stdout.write("\033]111\007")
+        sys.stdout.flush()
+    except: pass
+
 def osc(r,g,b):
     sys.stdout.write(f"\033]11;#{r:02x}{g:02x}{b:02x}\007")
     sys.stdout.flush()
 
 def main():
+    import atexit, signal as _sig
+    atexit.register(reset_bg)
+    for _s in (_sig.SIGINT, _sig.SIGTERM, _sig.SIGHUP):
+        try: _sig.signal(_s, lambda *a: (reset_bg(), sys.exit(0)))
+        except: pass
     p = subprocess.Popen(["cava","-p",CAVA_CONF], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
     try:
         for line in p.stdout:
